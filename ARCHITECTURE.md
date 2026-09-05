@@ -12,9 +12,9 @@ toolchain, and on-device IPA signing. Test hardware: A14.
    NetworkExtension, no paid Apple Developer account required.
 2. **Editor UI/features** — native, written in Swift + Metal (and
    Objective-C where it's the pragmatic choice, e.g. for some system
-   interop). VS Code / vscodium is a *feature reference* only — we are
-   not embedding its Electron shell or its source. Nothing from it is
-   vendored.
+   interop). We are not embedding VS Code's Electron shell or its
+   source — but we do want its ecosystem value (plugins, polish). See
+   "Plugins / VS Code compatibility" below for how that's staged.
 3. **Swift toolchain + IPA signing** — on-device: compile Swift source,
    sign the resulting `.app` into an installable `.ipa`, all inside the
    same app.
@@ -40,6 +40,43 @@ Previously vendored and now dropped:
 
 All AGPLv3-licensed upstreams match this project's own license.
 `idevice` is MIT, compatible either way.
+
+## Plugins / VS Code compatibility (tiered)
+
+Real, full VS Code extension-API compatibility is a multi-year effort
+(it took Eclipse Theia's dedicated team years to get most of the way
+there). Rather than promise that, this is staged so each tier ships
+real value on its own and the next tier builds on it:
+
+1. **Declarative contributions — no JS execution at all.** A large
+   share of real-world extensions are just data: themes, TextMate
+   grammars, snippets, and language configuration declared in
+   `package.json`'s `contributes` block. We parse and render these
+   natively (our own TextMate-grammar interpreter + theme engine).
+   This alone buys VS Code-grade syntax highlighting and theming, and
+   most of "looks and feels like vscode," without running any
+   extension code.
+2. **LSP client, independent of VS Code's extension host.** Language
+   Server Protocol is a standard JSON-RPC-over-stdio protocol; a
+   native Swift LSP client can drive any language server directly.
+   `sourcekit-lsp` ships with the Swift toolchain we already need for
+   compilation, so Swift smart-editing (autocomplete, diagnostics,
+   go-to-definition) comes essentially for free from tier 3's toolchain
+   work, no Node involved.
+3. **Real extension host, for actual marketplace JS extensions.**
+   Embed `nodejs-mobile` (community-maintained Node.js port for
+   iOS/Android, MIT — the original Janea Systems project, now at
+   github.com/nodejs-mobile/nodejs-mobile) to run vscode's own
+   `extensionHostProcess.js` bundle, and implement the native side of
+   its RPC protocol (`MainThreadDocuments`, `MainThreadEditors`, etc.)
+   incrementally, API by API, starting from whatever the
+   highest-value/most-used extensions actually touch. This is where
+   the jitter matters again — not for the whole UI anymore, just to
+   get JIT-speed V8 in this one process instead of interpreter-only.
+
+Tiers 1 and 2 are the realistic near-term scope. Tier 3 is real but
+open-ended; treat it as "grows extension by extension," not a
+one-shot deliverable.
 
 ## Why not Electron, why not a WebView
 
@@ -103,3 +140,7 @@ on their own schedule.
 - [ ] On-device install step (AFC/installd, `minimuxer`-style).
 - [ ] Native Metal-backed text editor core.
 - [ ] On-device Swift compiler toolchain pipeline.
+- [ ] Tier 1: TextMate grammar + theme engine (declarative extension
+      contributions, no JS).
+- [ ] Tier 2: native LSP client (sourcekit-lsp first).
+- [ ] Tier 3: nodejs-mobile + real extension host RPC (open-ended).
