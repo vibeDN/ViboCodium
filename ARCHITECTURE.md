@@ -72,6 +72,34 @@ explicitly out of scope — that was a multi-year effort even for Eclipse
 Theia's dedicated team, and it isn't needed for language support, which
 is the actual goal here.
 
+### Tier 3: the toolchain itself, not just editing support
+
+A language extension shouldn't just make a language look nice — it
+should be able to bring a real compiler/interpreter for that language
+and actually run code, the same way the Swift toolchain does. This
+needs the same trick the jitter already relies on, generalized:
+
+iOS's codesign enforcement blocks executing any binary that wasn't part
+of the app's signature at install time — that applies to a downloaded
+Python interpreter or a downloaded C compiler exactly as much as it
+applies to freshly-compiled Swift output. A debug-flagged
+(JIT-enabled) process is exempted from that, so the same mechanism
+covers both:
+
+- `dlopen` a downloaded interpreter/compiler as a dylib inside our
+  already-JIT-enabled main process, or
+- launch a separate toolchain binary as a helper process and
+  `vAttach` it the same way we self-attach (debug-flag someone else's
+  pid instead of our own).
+
+So `JITBridge` shouldn't be built as a one-shot "JIT-enable myself at
+launch" module — it should expose a general "launch/load a binary under
+a debug flag" primitive, and both the Swift edit-compile-run loop and
+any language extension's toolchain are just callers of it. The debug
+flag only lasts for the life of the process, so this has to be redone
+each cold launch — which we're already doing anyway for the Swift
+loop, so toolchains piggyback on the same moment for free.
+
 ## Why not Electron, why not a WebView
 
 Electron does not run on iOS (no multi-process execution, no JIT-mapped
@@ -141,12 +169,16 @@ on their own schedule.
       minimuxer).
 - [ ] Xcode workspace + app target scaffold.
 - [ ] `JITBridge`: our own module against `Vendor/idevice`'s
-      xcframework — pairing, DDI mount, tunnel, self-attach by pid,
-      heartbeat keepalive.
+      xcframework — pairing, DDI mount, tunnel, heartbeat keepalive,
+      and a general "debug-flag a pid" primitive (not just self-attach
+      — also used to license downloaded toolchain binaries to run).
 - [ ] `SigningKit`: wraps `SideSign` for on-device IPA signing.
 - [ ] On-device install step (AFC/installd, `minimuxer`-style).
 - [ ] Native Metal-backed text editor core.
-- [ ] On-device Swift compiler toolchain pipeline.
+- [ ] On-device Swift compiler toolchain pipeline (first consumer of
+      `JITBridge`'s debug-flag primitive).
+- [ ] Per-language toolchain loading (dlopen'd interpreter, or a
+      debug-flagged helper process) for non-Swift language extensions.
 - [ ] Language-extension tier 1: TextMate grammar + theme engine
       (declarative extension contributions, no JS).
 - [ ] Language-extension tier 2: native LSP client (sourcekit-lsp
