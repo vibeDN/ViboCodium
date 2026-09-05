@@ -11,10 +11,12 @@ bootstrap:
 
 # JITBridge depends on Vendor/idevice/swift, which needs IDevice.xcframework
 # built before it resolves. Requires a Mac (cross-compiles the Rust crate
-# for Apple targets, then `xcodebuild -create-xcframework`) - see
-# Modules/JITBridge/README.md.
+# for aarch64-apple-ios, then `xcodebuild -create-xcframework`) - see
+# Modules/JITBridge/README.md. Builds device-only, not idevice's own
+# `just xcframework` (which also builds simulator/Catalyst/macOS slices we
+# don't need - we only ever target a real device).
 idevice-xcframework:
-	cd Vendor/idevice && just xcframework
+	./scripts/build-idevice-xcframework.sh
 
 clean:
 	git clean -fdx -e Vendor

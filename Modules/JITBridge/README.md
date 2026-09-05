@@ -16,19 +16,26 @@ This package depends on `Vendor/idevice/swift`, which declares a
 `.binaryTarget` pointing at `IDevice.xcframework` - a build artifact that
 is **not checked into the repo** and must be produced locally before this
 package resolves. Building it requires a Mac (it invokes `xcodebuild
--create-xcframework` and cross-compiles the underlying Rust crate for
-Apple targets):
+-create-xcframework` and cross-compiles the underlying Rust crate):
 
 ```sh
-cd Vendor/idevice
-just xcframework
+make idevice-xcframework   # or: ./scripts/build-idevice-xcframework.sh
 ```
+
+This runs `scripts/build-idevice-xcframework.sh`, not idevice's own `just
+xcframework` recipe - that recipe also builds simulator/Catalyst/macOS
+slices, which we don't need: we only ever target a real iOS device, and
+those other platforms already have Xcode and real VS Code. Our script
+builds just the `aarch64-apple-ios` slice, which is most of what made the
+full recipe slow.
 
 This cannot be done from this Linux sandbox - there is no Xcode, no iOS
 SDK, and no Apple Rust cross-toolchain here. The Swift source in this
 package has been written and reviewed against `Vendor/idevice`'s current
 FFI signatures (`ffi/src/*.rs`), but has not been compiled or run - that
-has to happen on a Mac with the xcframework in place.
+has to happen on a Mac with the xcframework in place. CI
+(`.github/workflows/jitbridge-ci.yml`) does exactly that on a
+GitHub-hosted macOS runner.
 
 ## What's deliberately not here yet
 

@@ -15,9 +15,6 @@ jobs:
         with:
           submodules: recursive
 
-      - name: Install just
-        run: brew install just
-
       - name: Cache Cargo
         uses: actions/cache@v4
         with:
@@ -25,28 +22,15 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             Vendor/idevice/target
-          key: macos-idevice-cargo-${{ hashFiles('Vendor/idevice/Cargo.lock', 'Vendor/idevice/justfile') }}
-          restore-keys: macos-idevice-cargo-
+          key: macos-idevice-cargo-ios-${{ hashFiles('Vendor/idevice/Cargo.lock') }}
+          restore-keys: macos-idevice-cargo-ios-
 
-      - name: Install rustup targets
-        run: |
-          rustup target add aarch64-apple-ios
-          rustup target add x86_64-apple-ios
-          rustup target add aarch64-apple-ios-sim
-          rustup target add aarch64-apple-darwin
-          rustup target add x86_64-apple-darwin
-          rustup target add aarch64-apple-ios-macabi
-          rustup target add x86_64-apple-ios-macabi
-          cargo install --force --locked bindgen-cli
-
-      # `just xcframework` depends on `apple-build`, so this alone builds
-      # every Apple target and assembles swift/IDevice.xcframework - see
-      # Vendor/idevice/justfile. We skip their fuller `macos-ci-check`
-      # (clippy/fmt/cpp examples) since it's not relevant to consuming the
-      # xcframework from JITBridge.
-      - name: Build IDevice.xcframework
-        working-directory: Vendor/idevice
-        run: just xcframework
+      # We only ever target a real iOS device, so this builds just the
+      # aarch64-apple-ios slice instead of idevice's own `just xcframework`
+      # recipe (which also builds simulator/Catalyst/macOS - unnecessary for
+      # us, and most of the CI time). See scripts/build-idevice-xcframework.sh.
+      - name: Build IDevice.xcframework (aarch64-apple-ios only)
+        run: ./scripts/build-idevice-xcframework.sh
 
       - name: Upload IDevice.xcframework
         uses: actions/upload-artifact@v4
