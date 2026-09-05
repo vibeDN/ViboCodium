@@ -168,12 +168,19 @@ on their own schedule.
 - [x] Vendor submodules: `idevice`, `SideStore` (+ nested SideSign,
       minimuxer).
 - [ ] Xcode workspace + app target scaffold.
-- [ ] `JITBridge`: our own module against `Vendor/idevice`'s
-      xcframework — pairing, DDI mount, tunnel, heartbeat keepalive,
-      and a general "debug-flag a pid" primitive (not just self-attach
-      — also used to license downloaded toolchain binaries to run).
+- [x] `JITBridge` (`Modules/JITBridge`): pairing file storage, tunnel,
+      debug session, heartbeat keepalive, and the general "debug-flag a
+      pid" primitive (`JITBridge.attach`/`enableSelfJIT`), written
+      directly against `Vendor/idevice`'s current FFI signatures.
+      Not yet compiled/tested — needs `IDevice.xcframework` built on a
+      Mac first (`make idevice-xcframework`). DDI mount and getting a
+      pairing file in the first place are still open (see the module's
+      README).
 - [ ] `SigningKit`: wraps `SideSign` for on-device IPA signing.
 - [ ] On-device install step (AFC/installd, `minimuxer`-style).
+- [ ] `RemoteServer`/`ProcessControl` (already in `JITBridge`, unused
+      so far) wired up to actually launch+attach a toolchain helper
+      process, not just self-attach.
 - [ ] Native Metal-backed text editor core.
 - [ ] On-device Swift compiler toolchain pipeline (first consumer of
       `JITBridge`'s debug-flag primitive).

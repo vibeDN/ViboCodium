@@ -1,0 +1,42 @@
+# JITBridge
+
+A general "debug-flag a pid" primitive, written directly against
+`Vendor/idevice`'s C API (not a vendored app's Swift wrapper). See
+`ARCHITECTURE.md` at the repo root for the full rationale.
+
+Public API is `JITBridge.attach(pid:endpoint:hostname:holding:)` and the
+`JITBridge.enableSelfJIT(endpoint:)` convenience for self-attaching this
+process. Both the Swift edit-compile-run loop and any per-language
+toolchain helper process are meant to call the same primitive - there is
+nothing StikDebug- or self-JIT-specific baked in below the public API.
+
+## Build prerequisite: `IDevice.xcframework`
+
+This package depends on `Vendor/idevice/swift`, which declares a
+`.binaryTarget` pointing at `IDevice.xcframework` - a build artifact that
+is **not checked into the repo** and must be produced locally before this
+package resolves. Building it requires a Mac (it invokes `xcodebuild
+-create-xcframework` and cross-compiles the underlying Rust crate for
+Apple targets):
+
+```sh
+cd Vendor/idevice
+just xcframework
+```
+
+This cannot be done from this Linux sandbox - there is no Xcode, no iOS
+SDK, and no Apple Rust cross-toolchain here. The Swift source in this
+package has been written and reviewed against `Vendor/idevice`'s current
+FFI signatures (`ffi/src/*.rs`), but has not been compiled or run - that
+has to happen on a Mac with the xcframework in place.
+
+## What's deliberately not here yet
+
+- **Getting a pairing file in the first place.** `PairingFile` only
+  stores/reads one; the one-time pairing UX (or however we end up
+  obtaining it) is a separate piece.
+- **The local tunnel endpoint.** `DeviceEndpoint` is a plain
+  address/port the caller supplies. The intended long-term source is an
+  in-process tunnel along the lines of `minimuxer`'s EMProxy (userspace
+  WireGuard over a `utun` socket, no companion VPN app, no
+  NetworkExtension entitlement) - not implemented here yet.
