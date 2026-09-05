@@ -1,0 +1,6 @@
+[submodule "Vendor/SideStore"]
+	path = Vendor/SideStore
+	url = https://github.com/SideStore/sidestore
+[submodule "Vendor/idevice"]
+	path = Vendor/idevice
+	url = https://github.com/jkcoxson/idevice
