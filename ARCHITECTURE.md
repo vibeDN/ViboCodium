@@ -167,16 +167,22 @@ on their own schedule.
 
 - [x] Vendor submodules: `idevice`, `SideStore` (+ nested SideSign,
       minimuxer).
-- [ ] Xcode workspace + app target scaffold.
+- [x] App target scaffold: `App/project.yml` (XcodeGen, not a checked-in
+      `.xcodeproj` - `make app-project`/`make app-build`), a minimal
+      SwiftUI shell (`App/Sources`) depending on `JITBridge` as a local
+      package. No separate `.xcworkspace` yet - unnecessary until we're
+      combining more than SPM packages. Unsigned (`CODE_SIGNING_ALLOWED:
+      NO`); real device installs go through SigningKit, not an
+      xcodebuild-exported archive.
 - [x] `JITBridge` (`Modules/JITBridge`): pairing file storage, tunnel,
       debug session, heartbeat keepalive, and the general "debug-flag a
       pid" primitive (`JITBridge.attach`/`enableSelfJIT`), written
       directly against `Vendor/idevice`'s current FFI signatures.
       Compiles clean on a real macOS/Xcode CI runner (GitHub Actions,
-      `.github/workflows/jitbridge-ci.yml`) against a device-only
-      `IDevice.xcframework`. Not yet exercised against a real device -
-      DDI mount and getting a pairing file in the first place are still
-      open (see the module's README).
+      `.github/workflows/ci.yml`), both standalone and linked into the
+      app target, against a device-only `IDevice.xcframework`. Not yet
+      exercised against a real device - DDI mount and getting a pairing
+      file in the first place are still open (see the module's README).
 - [ ] `SigningKit`: wraps `SideSign` for on-device IPA signing.
 - [ ] On-device install step (AFC/installd, `minimuxer`-style).
 - [ ] `RemoteServer`/`ProcessControl` (already in `JITBridge`, unused

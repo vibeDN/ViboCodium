@@ -1,4 +1,4 @@
-name: JITBridge CI
+name: ViboCodium CI
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    name: Build IDevice.xcframework + JITBridge (macOS)
+    name: Build IDevice.xcframework, JITBridge, and the app (macOS)
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,3 +41,23 @@ jobs:
       - name: Build JITBridge
         working-directory: Modules/JITBridge
         run: xcodebuild build -scheme JITBridge -destination 'generic/platform=iOS'
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      # App/ViboCodium.xcodeproj is generated, not checked in - see
+      # App/project.yml and Makefile's app-project/app-build targets.
+      - name: Generate Xcode project
+        working-directory: App
+        run: xcodegen generate
+
+      # Unsigned compile verification only - no signing identity exists in
+      # CI (or anywhere yet). Real device installs go through the
+      # SideSign-based signing pipeline, not an exported/signed archive
+      # built here.
+      - name: Build ViboCodium app (unsigned)
+        working-directory: App
+        run: |
+          xcodebuild build -project ViboCodium.xcodeproj -scheme ViboCodium \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO

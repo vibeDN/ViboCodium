@@ -1,0 +1,38 @@
+name: ViboCodium
+options:
+  bundleIdPrefix: com.vibocodium
+  deploymentTarget:
+    iOS: "17.0"
+
+packages:
+  JITBridge:
+    path: ../Modules/JITBridge
+
+targets:
+  ViboCodium:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Sources
+    dependencies:
+      - package: JITBridge
+    info:
+      path: Generated-Info.plist
+      properties:
+        CFBundleDisplayName: ViboCodium
+        UILaunchScreen: {}
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.vibocodium.app
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        # No signing identity in CI (or yet, locally) - this target is for
+        # compile verification. Real device installs go through the
+        # SideSign-based signing pipeline (SigningKit), not xcodebuild
+        # -exportArchive with a CI-held certificate.
+        CODE_SIGN_STYLE: Manual
+        CODE_SIGNING_REQUIRED: NO
+        CODE_SIGNING_ALLOWED: NO
