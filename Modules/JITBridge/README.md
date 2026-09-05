@@ -12,11 +12,20 @@ nothing StikDebug- or self-JIT-specific baked in below the public API.
 
 ## Build prerequisite: `IDevice.xcframework`
 
-This package depends on `Vendor/idevice/swift`, which declares a
-`.binaryTarget` pointing at `IDevice.xcframework` - a build artifact that
-is **not checked into the repo** and must be produced locally before this
+This package declares its own `.binaryTarget` pointing directly at
+`Vendor/idevice/swift/IDevice.xcframework` - a build artifact that is
+**not checked into the repo** and must be produced locally before this
 package resolves. Building it requires a Mac (it invokes `xcodebuild
 -create-xcframework` and cross-compiles the underlying Rust crate):
+
+Deliberately *not* consumed via `Vendor/idevice/swift/Package.swift` as a
+package dependency: that manifest declares `// swift-tools-version: 5.3`
+with a space before the version number, which is only valid syntax for
+tools-version 5.4+ - newer toolchains (Xcode 26.6+) reject it outright
+with "horizontal whitespace sequence ... supported by only Swift >=
+5.4". That's a real bug upstream we can't fix inside a submodule, so
+`JITBridge`'s own `Package.swift` binds straight to the `.xcframework`
+file instead of resolving their manifest at all.
 
 ```sh
 make idevice-xcframework   # or: ./scripts/build-idevice-xcframework.sh
