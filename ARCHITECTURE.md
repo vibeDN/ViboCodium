@@ -41,42 +41,36 @@ Previously vendored and now dropped:
 All AGPLv3-licensed upstreams match this project's own license.
 `idevice` is MIT, compatible either way.
 
-## Plugins / VS Code compatibility (tiered)
+## Plugins: language-support extensions only, not arbitrary JS extensions
 
-Real, full VS Code extension-API compatibility is a multi-year effort
-(it took Eclipse Theia's dedicated team years to get most of the way
-there). Rather than promise that, this is staged so each tier ships
-real value on its own and the next tier builds on it:
+Scope is deliberately narrowed to *language extensions* — the ones that
+add support for a language (grammar, theme, snippets, language server),
+not general-purpose extensions with arbitrary logic/UI (GitLens-style
+things). That's a much smaller, fully achievable target in two tiers,
+with no Node.js and no VS Code extension host anywhere in this app:
 
-1. **Declarative contributions — no JS execution at all.** A large
-   share of real-world extensions are just data: themes, TextMate
-   grammars, snippets, and language configuration declared in
+1. **Declarative contributions — no JS execution at all.** Nearly all
+   language extensions are just data: TextMate grammars, color/icon
+   themes, snippets, and language configuration declared in
    `package.json`'s `contributes` block. We parse and render these
    natively (our own TextMate-grammar interpreter + theme engine).
-   This alone buys VS Code-grade syntax highlighting and theming, and
-   most of "looks and feels like vscode," without running any
+   This alone buys VS Code-grade syntax highlighting and theming for
+   any language that has a published extension, without running any
    extension code.
-2. **LSP client, independent of VS Code's extension host.** Language
-   Server Protocol is a standard JSON-RPC-over-stdio protocol; a
-   native Swift LSP client can drive any language server directly.
+2. **LSP client, native, no extension host involved.** Language Server
+   Protocol is a standard JSON-RPC-over-stdio protocol; a native Swift
+   LSP client spawns and talks to any language server directly.
    `sourcekit-lsp` ships with the Swift toolchain we already need for
    compilation, so Swift smart-editing (autocomplete, diagnostics,
-   go-to-definition) comes essentially for free from tier 3's toolchain
-   work, no Node involved.
-3. **Real extension host, for actual marketplace JS extensions.**
-   Embed `nodejs-mobile` (community-maintained Node.js port for
-   iOS/Android, MIT — the original Janea Systems project, now at
-   github.com/nodejs-mobile/nodejs-mobile) to run vscode's own
-   `extensionHostProcess.js` bundle, and implement the native side of
-   its RPC protocol (`MainThreadDocuments`, `MainThreadEditors`, etc.)
-   incrementally, API by API, starting from whatever the
-   highest-value/most-used extensions actually touch. This is where
-   the jitter matters again — not for the whole UI anymore, just to
-   get JIT-speed V8 in this one process instead of interpreter-only.
+   go-to-definition) comes essentially for free from the toolchain work.
+   Other languages get the same treatment: point the client at
+   whatever LSP server that language's extension bundles or expects.
 
-Tiers 1 and 2 are the realistic near-term scope. Tier 3 is real but
-open-ended; treat it as "grows extension by extension," not a
-one-shot deliverable.
+A full VS Code extension host (real Node.js + V8, running arbitrary
+marketplace JS extensions via the full `vscode` API surface) is
+explicitly out of scope — that was a multi-year effort even for Eclipse
+Theia's dedicated team, and it isn't needed for language support, which
+is the actual goal here.
 
 ## Why not Electron, why not a WebView
 
@@ -107,6 +101,14 @@ exists), `minimuxer`'s EMProxy/`utun` approach is the reference to copy
 from — it's the same idea SideStore already ships and does not require
 a system VPN configuration.
 
+**What the jitter is actually for, now that plugins don't need it:**
+the edit-compile-run loop. iOS's AMFI won't execute freshly-generated
+code pages in a running process unless that process is JIT-enabled or
+flagged as debugged — that blocks a fast "Run" button (compile new
+Swift code on-device and execute it immediately) which would otherwise
+need a full resign-and-reinstall cycle every time. Self-JIT is what
+makes a tight edit-compile-run loop possible at all.
+
 ## Swift toolchain + on-device IPA signing
 
 On-device compile (Swift toolchain) → `.app` bundle → resign into an
@@ -115,6 +117,11 @@ Signing reuses `SideSign`'s entitlements/provisioning/signature
 construction rather than reimplementing CMS-based code signing from
 scratch. Install-onto-self-device likely needs the same AFC/installd
 path `minimuxer` already implements.
+
+The signed-reinstall path (via SideSign/minimuxer) is for producing a
+real, persistent, installed `.ipa`. The jitter-enabled fast path (see
+above) is for iterating during development without paying that cost on
+every change.
 
 Test target hardware: A14 (e.g. iPhone 12 class). On-device Swift
 compilation is real work with real memory/CPU constraints on that chip
@@ -140,7 +147,7 @@ on their own schedule.
 - [ ] On-device install step (AFC/installd, `minimuxer`-style).
 - [ ] Native Metal-backed text editor core.
 - [ ] On-device Swift compiler toolchain pipeline.
-- [ ] Tier 1: TextMate grammar + theme engine (declarative extension
-      contributions, no JS).
-- [ ] Tier 2: native LSP client (sourcekit-lsp first).
-- [ ] Tier 3: nodejs-mobile + real extension host RPC (open-ended).
+- [ ] Language-extension tier 1: TextMate grammar + theme engine
+      (declarative extension contributions, no JS).
+- [ ] Language-extension tier 2: native LSP client (sourcekit-lsp
+      first).
