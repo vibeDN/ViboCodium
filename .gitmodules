@@ -1,0 +1,9 @@
+[submodule "Vendor/StikDebug"]
+	path = Vendor/StikDebug
+	url = https://github.com/StikDebug/stikdebug
+[submodule "Vendor/SideStore"]
+	path = Vendor/SideStore
+	url = https://github.com/SideStore/sidestore
+[submodule "Vendor/vscodium"]
+	path = Vendor/vscodium
+	url = https://github.com/VSCodium/vscodium
