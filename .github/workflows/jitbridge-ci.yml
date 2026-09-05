@@ -1,0 +1,59 @@
+name: JITBridge CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build IDevice.xcframework + JITBridge (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install just
+        run: brew install just
+
+      - name: Cache Cargo
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            Vendor/idevice/target
+          key: macos-idevice-cargo-${{ hashFiles('Vendor/idevice/Cargo.lock', 'Vendor/idevice/justfile') }}
+          restore-keys: macos-idevice-cargo-
+
+      - name: Install rustup targets
+        run: |
+          rustup target add aarch64-apple-ios
+          rustup target add x86_64-apple-ios
+          rustup target add aarch64-apple-ios-sim
+          rustup target add aarch64-apple-darwin
+          rustup target add x86_64-apple-darwin
+          rustup target add aarch64-apple-ios-macabi
+          rustup target add x86_64-apple-ios-macabi
+          cargo install --force --locked bindgen-cli
+
+      # `just xcframework` depends on `apple-build`, so this alone builds
+      # every Apple target and assembles swift/IDevice.xcframework - see
+      # Vendor/idevice/justfile. We skip their fuller `macos-ci-check`
+      # (clippy/fmt/cpp examples) since it's not relevant to consuming the
+      # xcframework from JITBridge.
+      - name: Build IDevice.xcframework
+        working-directory: Vendor/idevice
+        run: just xcframework
+
+      - name: Upload IDevice.xcframework
+        uses: actions/upload-artifact@v4
+        with:
+          name: idevice-xcframework
+          path: Vendor/idevice/swift/IDevice.xcframework
+
+      - name: Build JITBridge
+        working-directory: Modules/JITBridge
+        run: xcodebuild build -scheme JITBridge -destination 'generic/platform=iOS'
