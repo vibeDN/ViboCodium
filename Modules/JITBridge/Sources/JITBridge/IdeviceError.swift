@@ -1,3 +1,4 @@
+import Foundation
 import IDevice
 
 /// A Swift-native error wrapping the C `IdeviceFfiError` produced by
