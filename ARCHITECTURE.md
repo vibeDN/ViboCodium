@@ -172,10 +172,11 @@ on their own schedule.
       debug session, heartbeat keepalive, and the general "debug-flag a
       pid" primitive (`JITBridge.attach`/`enableSelfJIT`), written
       directly against `Vendor/idevice`'s current FFI signatures.
-      Not yet compiled/tested — needs `IDevice.xcframework` built on a
-      Mac first (`make idevice-xcframework`). DDI mount and getting a
-      pairing file in the first place are still open (see the module's
-      README).
+      Compiles clean on a real macOS/Xcode CI runner (GitHub Actions,
+      `.github/workflows/jitbridge-ci.yml`) against a device-only
+      `IDevice.xcframework`. Not yet exercised against a real device -
+      DDI mount and getting a pairing file in the first place are still
+      open (see the module's README).
 - [ ] `SigningKit`: wraps `SideSign` for on-device IPA signing.
 - [ ] On-device install step (AFC/installd, `minimuxer`-style).
 - [ ] `RemoteServer`/`ProcessControl` (already in `JITBridge`, unused
